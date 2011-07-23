@@ -227,7 +227,7 @@ module APNS
         sock.close
       end
     rescue Errno::ECONNABORTED, Errno::EPIPE, Errno::ECONNRESET
-      if (retries += 1) < 2 # reduce number of retries; we are getting EPIPEs but msg going thru
+      if (retries += 1) < 1 # reduce number of retries; we are getting EPIPEs but msg going thru
         self.remove_connection(host, port)
         retry
       else
