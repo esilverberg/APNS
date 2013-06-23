@@ -119,15 +119,40 @@ module APNS
     [device_token.gsub(/[\s|<|>]/,'')].pack('H*')
   end
   
+  # es updated how we generate JSON messages, for compat
   def self.packaged_message(message)
     if message.is_a?(Hash)
-      message.to_json
+      JSON.generate(message, :ascii_only => true)
     elsif message.is_a?(String)
-      '{"aps":{"alert":"'+ message + '"}}'
+      '{"aps":{"alert":"'+ message.force_encoding(Encoding::ASCII_8BIT) + '"}}'
     else
       raise "Message needs to be either a hash or string"
     end
   end
+  
+  # es added
+  def self.notification_size(device_token, message)
+    pt = self.packaged_token(device_token)
+    pm = self.packaged_message(message)
+    return ([0, 0, 32, pt, 0, pm.size, pm].pack("ccca*cca*")).length
+  end
+  
+  def self.truncate_words(text, length = 30, end_string = '')
+      words = text.split()
+      words[0..(length-1)].join(' ') + (words.length > length ? end_string : '')
+  end
+  
+  def self.prune_notification(notification)
+    words_length = 30
+    while (self.notification_size(notification[0], notification[1]) >= 256 and words_length > 5)
+      message_text = notification[1][:aps][:alert]
+      break if message_text.length < 10
+      notification[1][:aps][:alert] = truncate_words(message_text, words_length.to_i, "\u2026") # "\u2026" is an ellipsis
+      words_length *= 0.8
+    end
+    return notification
+  end
+  # end
   
   def self.with_notification_connection(&block)
     self.with_connection(self.host, self.port, &block)
