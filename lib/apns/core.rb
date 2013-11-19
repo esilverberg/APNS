@@ -144,7 +144,7 @@ module APNS
   
   def self.prune_notification(notification)
     words_length = 30
-    while (self.notification_size(notification[0], notification[1]) >= 256 and words_length > 5)
+    while (self.notification_size(notification[0], notification[1]) >= 256 and words_length > 1)
       message_text = notification[1][:aps][:alert]
       break if message_text.length < 10
       notification[1][:aps][:alert] = truncate_words(message_text, words_length.to_i, "\u2026") # "\u2026" is an ellipsis
